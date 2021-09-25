@@ -2,6 +2,7 @@
 // #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 
 void fill_array(float *array, float value, size_t n_elements)
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
     printf("%ld\n", sizeof(unsigned long long));
     
     double register sum = 0.;
-    #pragma omp parallel for reduction (+:sum)
+    #pragma omp parallel for reduction (+:sum) schedule(dynamic, N/omp_get_num_threads()/1000)
     for(size_t i = 0; i < N; i++){
         sum += i;
     }
