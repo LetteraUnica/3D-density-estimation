@@ -73,6 +73,20 @@ void set_random_seed() {
     rng.seed(rd());
 }
 
+void print_array(float* array, int n_elements) {
+    for (size_t i = 0; i < n_elements; i++){
+        printf("%f, %p\t", array[i], &array[i]);
+    }
+    printf("\n\n");
+}
+
+void print_array(byte* array, int n_elements) {
+    for (size_t i = 0; i < n_elements; i++){
+        printf("%c, %p\t", array[i], &array[i]);
+    }
+    printf("\n\n");
+}
+
 
 int main(int argc, char **argv)
 {
@@ -80,25 +94,12 @@ int main(int argc, char **argv)
 
     float* float_array = (float *)malloc(N * sizeof(float));
     rand_array(float_array, N, 1697);
-    FILE *ptr;
-    // Opens a file in write binary mode
-    ptr = fopen("test.bin", "wb+");
-    fseek(ptr, 0, SEEK_SET);
-
-    byte* bytes = float_to_byte(float_array, N);
-    fwrite(bytes, 1, 4*N, ptr);
-
-    byte* buffer = create_empty_buffer(4*N);
-    fseek(ptr, 0, SEEK_SET);
-    fread(buffer, 1, 4*N, ptr);
-
-    float* new_float_array = byte_to_float(buffer, N*4);
-
-
-    // float *float_array = (float *)malloc(N * sizeof(float));
-    // memcpy(float_array, int_array, N * sizeof(int_array[0]));
     
-    for (int i = 0; i < N; i++){
-        printf("%f  %f\n", float_array[i], new_float_array[i]);
-    }
+    print_array(float_array, N);
+
+    byte* byte_array = (byte*) float_array;
+
+    print_array(byte_array, N*4);
+
+    print_array((float*)byte_array, N);
 }
