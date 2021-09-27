@@ -1,5 +1,7 @@
+#ifndef IO_UTILS_H_
+#define IO_UTILS_H_
+
 #include <stdio.h>
-#include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -8,7 +10,7 @@
 
 typedef u_int8_t byte;
 
-byte *float_to_byte(float *float_array, int n_elements)
+byte *float_to_byte(float *float_array, size_t n_elements)
 {
     byte *byte_array = (byte *)malloc(n_elements * sizeof(float) * sizeof(byte));
 
@@ -17,7 +19,7 @@ byte *float_to_byte(float *float_array, int n_elements)
     return byte_array;
 }
 
-float *byte_to_float(byte *byte_array, int n_bytes)
+float *byte_to_float(byte *byte_array, size_t n_bytes)
 {
     size_t float_size = sizeof(float);
     assert(n_bytes / float_size * float_size == n_bytes);
@@ -60,3 +62,15 @@ byte *read_input_file(FILE *file, size_t n_bytes)
 
     return buffer;
 }
+
+size_t get_file_size(FILE *file)
+{
+    size_t previous_position = ftell(file);
+    fseek(file, 0L, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, previous_position, SEEK_SET);
+
+    return size;
+}
+
+#endif

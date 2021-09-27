@@ -1,6 +1,19 @@
+#ifndef ARRAY_H_
+#define ARRAY_H_
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+#include <random>
+
+using namespace std;
+
 namespace array
 {
-    float *rand_array(float *array, size_t n_elements)
+    void rand_array(float *array, size_t n_elements, mt19937 &rng,
+                    uniform_real_distribution<float> &udist)
     {
         for (size_t i = 0; i < n_elements; i++)
         {
@@ -8,12 +21,22 @@ namespace array
         }
     }
 
-    void fill_array(float *array, float value, size_t n_elements)
+    template <typename T>
+    void fill_array(T *array, T value, size_t n_elements)
     {
-        for (int i = 0; i < n_elements; i++)
+        for (size_t i = 0; i < n_elements; i++)
         {
             array[i] = value;
         }
+    }
+
+    template <typename T>
+    void print_array(T *array, size_t start, size_t end) {
+        for (; start < end; start++)
+        {
+            printf("%f ", array[start]);
+        }
+        printf("\n");
     }
 
     struct ResizableArray
@@ -47,10 +70,12 @@ namespace array
     ResizableArray *create_empty_data_structure(int n_processors, size_t max_points)
     {
         ResizableArray *data_structure = (ResizableArray *)malloc(n_processors * sizeof(ResizableArray));
-        for (size_t i = 0; i < n_processors; i++)
+        for (int i = 0; i < n_processors; i++)
         {
             data_structure[i] = create_resizable_array(max_points);
         }
+
+        return data_structure;
     }
 
     void insert_point(ResizableArray *DS, float x, float y, float z, float R, int n_processors)
@@ -59,7 +84,7 @@ namespace array
         float low = 0.f;
         float high = low + step;
 
-        for (size_t j = 0; j < n_processors; j++)
+        for (int j = 0; j < n_processors; j++)
         {
             if (x >= low - R && x < high + R)
             {
@@ -79,3 +104,5 @@ namespace array
         }
     }
 }
+
+#endif
