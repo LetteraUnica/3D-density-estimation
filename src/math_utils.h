@@ -16,7 +16,6 @@ T clamp(T a, T min, T max)
 float *cell_to_point(size_t Nx, size_t Ny, size_t Nz, size_t N)
 {
     float *center = (float *)malloc(3 * sizeof(float));
-    ;
     float conversion_factor = 1.0f / (float)N;
 
     center[0] = (Nx + 0.5f) * conversion_factor;

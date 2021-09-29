@@ -52,6 +52,7 @@ void create_input_file(const char *filename, int n_points, mt19937 &rng,
         write_bytes(ptr, (byte *)random_points, 3 * sizeof(float));
     }
 
+    fclose(ptr);
     free(random_points);
 }
 
@@ -85,9 +86,14 @@ void update_density_matrix(unsigned int *local_density, float *point, size_t N, 
                 {
                     local_density[a + Nz] += 1;
                 }
+
+                free(center);
             }
         }
     }
+
+    free(lows);
+    free(highs);
 }
 
 int main(int argc, char **argv)
@@ -113,14 +119,14 @@ int main(int argc, char **argv)
     unsigned int n_dims = 3;
     size_t local_n_points;
     float *local_points;
-    unsigned int *local_density;
+    uint32_t *local_density;
 
-    size_t Nx = N / n_processors + (size_t)(N % n_processors < my_rank);
+    size_t Nx = N / n_processors + (size_t)(N % n_processors > my_rank);
 
     if (my_rank == 0)
     {
         // Get number of points
-        int n_points = N / 10;
+        uint32_t n_points = N*N*N / 10;
         FILE *file;
         if (argc == 4)
         {
@@ -130,6 +136,7 @@ int main(int argc, char **argv)
             // Read number of points
             byte *buffer = read_input_file(file, 4);
             memcpy(&n_points, buffer, 4);
+            free(buffer);
         }
 
         size_t max_points = n_points * (1. / n_processors + 2.f * R) + 1024;
@@ -143,7 +150,7 @@ int main(int argc, char **argv)
             size_t conversion_factor = sizeof(float) * n_dims;
             size_t block_size = points_per_read * conversion_factor;
             size_t n_bytes_read = block_size;
-            int actual_n_points = 0;
+            size_t actual_n_points = 0;
 
             byte *buffer = create_empty_buffer(block_size);
 
@@ -184,14 +191,17 @@ int main(int argc, char **argv)
 
             size_t batch_size = 1024;
             size_t conversion_factor = n_dims * sizeof(float);
+            size_t processed_points = 0;
 
             float *points = (float *)malloc(batch_size * conversion_factor);
-            for (size_t i = 0; i < n_points; i += batch_size)
+            while (processed_points < n_points)
             {
-                array::rand_array(points, batch_size * n_dims, rng, udist);
+                size_t current_batch_size = MIN(batch_size, n_points - processed_points);
+                array::rand_array(points, current_batch_size * n_dims, rng, udist);
 
                 // Insert points in the DS
-                insert_points(points, batch_size, DS, R, n_processors);
+                insert_points(points, current_batch_size, DS, R, n_processors);
+                processed_points += batch_size;
             }
 
             free(points);
@@ -200,18 +210,18 @@ int main(int argc, char **argv)
         // Send the counts to each processor
         for (int i = 1; i < n_processors; i++)
         {
-            MPI_Send(&DS[i].cur_points, 1, MY_MPI_SIZE_T, i, MPI_ANY_TAG, MPI_COMM_WORLD);
+            MPI_Send(&DS[i].cur_points, 1, MY_MPI_SIZE_T, i, 0, MPI_COMM_WORLD);
         }
 
         // Send the points to each processor
         for (int i = 1; i < n_processors; i++)
         {
-            MPI_Send(DS[i].data, DS[i].cur_points * 3, MPI_FLOAT, i, MPI_ANY_TAG, MPI_COMM_WORLD);
+            MPI_Send(DS[i].data, DS[i].cur_points * 3, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
             free(DS[i].data);
         }
 
         // Allocate the density matrix on the master processor
-        local_density = (unsigned int *)calloc(Nx * N * N, sizeof(unsigned int));
+        local_density = (uint32_t *)calloc(N * N * Nx, sizeof(uint32_t));
         local_n_points = DS[0].cur_points;
         local_points = DS[0].data;
 
@@ -222,7 +232,7 @@ int main(int argc, char **argv)
     {
         // Allocate the density matrix on the slaves, in the meantime the master will
         // be reading the input file
-        local_density = (unsigned int *)calloc(Nx * N * N / n_processors, sizeof(unsigned int));
+        local_density = (uint32_t *)calloc(N * N * Nx, sizeof(uint32_t));
 
         // Receive points
         MPI_Status status;
@@ -239,31 +249,33 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < local_n_points; i += 1)
     {
-        printf("%d ", i);
         update_density_matrix(local_density, &local_points[3 * i], N, R, Nx_range);
     }
-
+    printf("asd1");
+    free(local_points);
+    printf("asd2");
     // Write density matrix to file
     FILE *file = fopen("density.bin", "wb");
 
     size_t cells_per_write = 1024;
-    size_t conversion_factor = sizeof(float);
+    size_t conversion_factor = sizeof(uint32_t);
     size_t block_size = cells_per_write * conversion_factor;
 
-    fseek(file, N * N * Nx * conversion_factor, SEEK_SET);
-
-    printf("%ld, %ld, %d", N, Nx, my_rank);
-
-    for (size_t i = 0; i < N * N * Nx; i += cells_per_write)
+    fseek(file, Nx_range[0] * conversion_factor, SEEK_SET);
+    size_t total_cells = N * N * Nx;
+    for (size_t i = 0; i < total_cells; i += cells_per_write)
     {
-        size_t n_bytes = write_bytes(file, (byte *)&local_density[i], block_size);
-        printf("%ld, %ld", n_bytes, i);
+        size_t current_block_size = MIN(block_size, (total_cells - i) * conversion_factor);
+        size_t n_bytes = write_bytes(file, (byte *)&local_density[i], current_block_size);
     }
-
+printf("asd");
+    free(local_points);
+    printf("asd");
     free(local_density);
+    printf("asd");
     fclose(file);
-
+printf("asd");
     MPI_Finalize();
-
+printf("asd");
     return 0;
 }
