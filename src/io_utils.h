@@ -9,6 +9,7 @@
 #include <random>
 
 typedef u_int8_t byte;
+using namespace std;
 
 byte *float_to_byte(float *float_array, size_t n_elements)
 {
@@ -72,5 +73,23 @@ size_t get_file_size(FILE *file)
 
     return size;
 }
+
+void create_input_file(const char *filename, int n_points, mt19937 &rng,
+                       uniform_real_distribution<float> &udist)
+{
+    FILE *ptr = fopen(filename, "rb");
+    write_bytes(ptr, (byte *)&n_points, sizeof(int));
+
+    float *random_points = (float *)malloc(3 * sizeof(float));
+    for (int i = 0; i < n_points; i++)
+    {
+        array::rand_array(random_points, 3, rng, udist);
+        write_bytes(ptr, (byte *)random_points, 3 * sizeof(float));
+    }
+
+    fclose(ptr);
+    free(random_points);
+}
+
 
 #endif

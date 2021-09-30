@@ -103,6 +103,14 @@ namespace array
             high += step;
         }
     }
+
+    void insert_points(float *points, size_t n_points, ResizableArray *DS, float R, int n_processors)
+    {
+    for (size_t i = 0; i < n_points; i++)
+    {
+        insert_point(DS, points[3 * i], points[3 * i + 1], points[3 * i + 2], R, n_processors);
+    }
+}
 }
 
 #endif

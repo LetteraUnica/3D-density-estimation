@@ -45,4 +45,41 @@ float squared_distance(const float *point1, const float *point2)
     return x * x + y * y + z * z;
 }
 
+void set_random_seed(mt19937 &rng, random_device &rd)
+{
+    rng.seed(rd());
+}
+
+void update_density_matrix(unsigned int *local_density, float *point, size_t N, float R, size_t *Nx_range)
+{
+    float R_2 = R * R;
+
+    size_t *lows = point_to_cell(point[0] - R, point[1] - R, point[2] - R, N, Nx_range);
+    size_t *highs = point_to_cell(point[0] + R, point[1] + R, point[2] + R, N, Nx_range);
+
+    for (size_t Nx = lows[0]; Nx < highs[0]; Nx++)
+    {
+        size_t a = (Nx - Nx_range[0]) * N * N;
+        for (size_t Ny = lows[1]; Ny < highs[1]; Ny++)
+        {
+            a += Ny * N;
+            for (size_t Nz = lows[2]; Nz < highs[2]; Nz++)
+            {
+                float *center = cell_to_point(Nx, Ny, Nz, N);
+                float d_2 = squared_distance(center, point);
+
+                if (d_2 < R_2)
+                {
+                    local_density[a + Nz] += 1;
+                }
+
+                free(center);
+            }
+        }
+    }
+
+    free(lows);
+    free(highs);
+}
+
 #endif

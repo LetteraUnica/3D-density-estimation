@@ -7,6 +7,7 @@
 #include <limits.h>
 
 #include <random>
+#include <iostream> 
 
 #include "io_utils.h"
 #include "array.h"
@@ -33,68 +34,6 @@ typedef u_int8_t byte;
 
 using namespace array;
 using namespace std;
-
-void set_random_seed(mt19937 &rng, random_device &rd)
-{
-    rng.seed(rd());
-}
-
-void create_input_file(const char *filename, int n_points, mt19937 &rng,
-                       uniform_real_distribution<float> &udist)
-{
-    FILE *ptr = fopen(filename, "rb");
-    write_bytes(ptr, (byte *)&n_points, sizeof(int));
-
-    float *random_points = (float *)malloc(3 * sizeof(float));
-    for (int i = 0; i < n_points; i++)
-    {
-        array::rand_array(random_points, 3, rng, udist);
-        write_bytes(ptr, (byte *)random_points, 3 * sizeof(float));
-    }
-
-    fclose(ptr);
-    free(random_points);
-}
-
-void insert_points(float *points, size_t n_points, ResizableArray *DS, float R, int n_processors)
-{
-    for (size_t i = 0; i < n_points; i++)
-    {
-        insert_point(DS, points[3 * i], points[3 * i + 1], points[3 * i + 2], R, n_processors);
-    }
-}
-
-void update_density_matrix(unsigned int *local_density, float *point, size_t N, float R, size_t *Nx_range)
-{
-    float R_2 = R * R;
-
-    size_t *lows = point_to_cell(point[0] - R, point[1] - R, point[2] - R, N, Nx_range);
-    size_t *highs = point_to_cell(point[0] + R, point[1] + R, point[2] + R, N, Nx_range);
-
-    for (size_t Nx = lows[0]; Nx < highs[0]; Nx++)
-    {
-        size_t a = (Nx - Nx_range[0]) * N * N;
-        for (size_t Ny = lows[1]; Ny < highs[1]; Ny++)
-        {
-            a += Ny * N;
-            for (size_t Nz = lows[2]; Nz < highs[2]; Nz++)
-            {
-                float *center = cell_to_point(Nx, Ny, Nz, N);
-                float d_2 = squared_distance(center, point);
-
-                if (d_2 < R_2)
-                {
-                    local_density[a + Nz] += 1;
-                }
-
-                free(center);
-            }
-        }
-    }
-
-    free(lows);
-    free(highs);
-}
 
 int main(int argc, char **argv)
 {
@@ -251,6 +190,7 @@ int main(int argc, char **argv)
     {
         update_density_matrix(local_density, &local_points[3 * i], N, R, Nx_range);
     }
+    assert(local_n_points == local_n_points && my_error("Line 193 OK\n"));
     printf("asd1");
     free(local_points);
     printf("asd2");
@@ -277,5 +217,13 @@ printf("asd");
 printf("asd");
     MPI_Finalize();
 printf("asd");
+    return 0;
+}
+
+
+int my_error(std::string message) {
+    std::string error = "Error";
+    std::cout << error+message << std::endl;
+    
     return 0;
 }
