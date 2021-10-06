@@ -112,7 +112,7 @@ int main(int argc, char **argv)
             {
                 printf("Warning: The number of points found in the file is "
                        "different than what specified in the file header, "
-                       "specified: %d, found: %d, the program will continue "
+                       "specified: %d, found: %ld, the program will continue "
                        "with the number of found points\n",
                        n_points, actual_n_points);
 
@@ -186,14 +186,13 @@ int main(int argc, char **argv)
     size_t start = N / n_processors * my_rank + MIN(N % n_processors, my_rank);
     size_t Nx_range[2] = {start, start + Nx};
 
+    printf("%ld, %ld, %ld\n\n", Nx_range[0], Nx_range[1], Nx);
     for (size_t i = 0; i < local_n_points; i += 1)
     {
         update_density_matrix(local_density, &local_points[3 * i], N, R, Nx_range);
     }
-    assert(local_n_points == local_n_points && my_error("Line 193 OK\n"));
-    printf("asd1");
-    free(local_points);
-    printf("asd2");
+    assert(local_n_points == local_n_points && "Line 193 OK\n");
+
     // Write density matrix to file
     FILE *file = fopen("density.bin", "wb");
 
@@ -208,22 +207,18 @@ int main(int argc, char **argv)
         size_t current_block_size = MIN(block_size, (total_cells - i) * conversion_factor);
         size_t n_bytes = write_bytes(file, (byte *)&local_density[i], current_block_size);
     }
-printf("asd");
+
     free(local_points);
-    printf("asd");
     free(local_density);
-    printf("asd");
     fclose(file);
-printf("asd");
     MPI_Finalize();
-printf("asd");
     return 0;
 }
 
 
-int my_error(std::string message) {
-    std::string error = "Error";
-    std::cout << error+message << std::endl;
+// int my_error(std::string message) {
+//     std::string error = "Error";
+//     std::cout << error+message << std::endl;
     
-    return 0;
-}
+//     return 0;
+// }

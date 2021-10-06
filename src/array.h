@@ -93,10 +93,10 @@ namespace array
                     resize_array(&DS[j], DS[j].max_points * 2);
                 }
 
-                DS[j].cur_points += 1;
                 DS[j].data[3 * DS[j].cur_points] = x;
                 DS[j].data[3 * DS[j].cur_points + 1] = y;
                 DS[j].data[3 * DS[j].cur_points + 2] = z;
+                DS[j].cur_points += 1;
             }
 
             low = high;

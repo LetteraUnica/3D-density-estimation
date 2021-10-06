@@ -29,9 +29,9 @@ size_t *point_to_cell(float x, float y, float z, size_t N, size_t *Nx_range)
 {
     size_t *cell = (size_t *)malloc(3 * sizeof(size_t));
 
-    cell[0] = clamp((size_t)(N * x), Nx_range[0], Nx_range[1]);
-    cell[1] = clamp((size_t)(N * y), 0lu, N);
-    cell[2] = clamp((size_t)(N * z), 0lu, N);
+    cell[0] = clamp((size_t)abs(N * x), Nx_range[0], Nx_range[1]);
+    cell[1] = clamp((size_t)abs(N * y), 0lu, N);
+    cell[2] = clamp((size_t)abs(N * z), 0lu, N);
 
     return cell;
 }
@@ -56,6 +56,8 @@ void update_density_matrix(unsigned int *local_density, float *point, size_t N, 
 
     size_t *lows = point_to_cell(point[0] - R, point[1] - R, point[2] - R, N, Nx_range);
     size_t *highs = point_to_cell(point[0] + R, point[1] + R, point[2] + R, N, Nx_range);
+    printf("%f, %f, %f,,, ", point[0], point[1], point[2]);
+    printf("%ld, %ld, %ld,,, %ld, %ld, %ld\n", lows[0], lows[1], lows[2], highs[0], highs[1], highs[2]);
 
     for (size_t Nx = lows[0]; Nx < highs[0]; Nx++)
     {
