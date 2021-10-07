@@ -56,15 +56,14 @@ void update_density_matrix(unsigned int *local_density, float *point, size_t N, 
 
     size_t *lows = point_to_cell(point[0] - R, point[1] - R, point[2] - R, N, Nx_range);
     size_t *highs = point_to_cell(point[0] + R, point[1] + R, point[2] + R, N, Nx_range);
-    printf("%f, %f, %f,,, ", point[0], point[1], point[2]);
-    printf("%ld, %ld, %ld,,, %ld, %ld, %ld\n", lows[0], lows[1], lows[2], highs[0], highs[1], highs[2]);
 
     for (size_t Nx = lows[0]; Nx < highs[0]; Nx++)
     {
         size_t a = (Nx - Nx_range[0]) * N * N;
         for (size_t Ny = lows[1]; Ny < highs[1]; Ny++)
         {
-            a += Ny * N;
+            size_t b = a + Ny * N;
+            
             for (size_t Nz = lows[2]; Nz < highs[2]; Nz++)
             {
                 float *center = cell_to_point(Nx, Ny, Nz, N);
@@ -72,7 +71,7 @@ void update_density_matrix(unsigned int *local_density, float *point, size_t N, 
 
                 if (d_2 < R_2)
                 {
-                    local_density[a + Nz] += 1;
+                    local_density[b + Nz] += 1;
                 }
 
                 free(center);

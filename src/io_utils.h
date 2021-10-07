@@ -46,14 +46,14 @@ byte *read_input_file(FILE *file, size_t n_bytes)
     return buffer;
 }
 
-size_t get_file_size(FILE *file)
+u_int32_t get_number_of_points(FILE *file)
 {
-    size_t previous_position = ftell(file);
-    fseek(file, 0L, SEEK_END);
-    size_t size = ftell(file);
-    fseek(file, previous_position, SEEK_SET);
+    byte *buffer = read_input_file(file, 4);
+    u_int32_t n_points;
+    memcpy(&n_points, buffer, 4);
+    free(buffer);
 
-    return size;
+    return n_points;
 }
 
 void create_input_file(const char *filename, int n_points, mt19937 &rng,
