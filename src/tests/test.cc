@@ -16,90 +16,54 @@
 
 typedef u_int8_t byte;
 
-byte *float_to_byte(float *float_array, int n_elements)
+template <typename T>
+T clamp(T a, T min, T max)
 {
-    byte *byte_array = (byte *)malloc(n_elements * sizeof(float) * sizeof(byte));
-
-    memcpy(byte_array, float_array, n_elements * sizeof(float));
-
-    return byte_array;
+    T res = a < min ? min : a;
+    return res < max ? res : max;
 }
 
-float *byte_to_float(byte *byte_array, int n_elements)
+template <typename T>
+T clamp(T a, T* range)
 {
-    assert(n_elements / 4 * 4 == n_elements);
-
-    float *float_array = (float *)malloc(n_elements / 4 * sizeof(float));
-
-    memcpy(float_array, byte_array, n_elements * sizeof(byte_array[0]));
-
-    return float_array;
+    return clamp(a, range[0], range[1]);
 }
 
-byte *create_empty_buffer(size_t n_bytes)
+size_t get_cell(float x, size_t N, size_t *Nx_range)
 {
-    return (byte *)malloc(n_bytes * sizeof(byte));
+    return clamp((long)(N * x), (long)Nx_range[0], (long)Nx_range[1]);
 }
 
-size_t read_bytes(FILE *file, byte *buffer, size_t n_bytes)
+float get_point(size_t cell, float N_inv)
 {
-    return fread(buffer, sizeof(byte), n_bytes, file);
+    return (cell + 0.5f) * N_inv;
 }
 
-size_t write_bytes(FILE *file, byte *buffer, size_t n_bytes)
+size_t low_bound(float x, size_t N, float N_inv, size_t *Nx_range)
 {
-    return fwrite(buffer, sizeof(byte), n_bytes, file);
+    size_t Nx = get_cell(x, N, Nx_range);
+    float point = get_point(Nx, N_inv);
+
+    return clamp(Nx + (size_t)(x > point), Nx_range);
 }
 
-void fill_array(float *array, float value, size_t n_elements)
+size_t high_bound(float x, size_t N, float N_inv, size_t *Nx_range)
 {
-    for(int i = 0; i < n_elements; i++){
-        array[i] = value;
-    }
+    size_t Nx = get_cell(x, N, Nx_range);
+    float point = get_point(Nx, N_inv);
+
+    return clamp(Nx + (size_t)(x > point), Nx_range);
 }
-
-std::random_device rd;
-std::mt19937 rng;
-std::uniform_real_distribution<float> udist(0, 1);
-
-void rand_array(float *array, size_t n_elements, size_t seed)
-{
-    for (size_t i = 0; i < n_elements; i++) {
-        array[i] = udist(rng);
-    }
-}
-
-void set_random_seed() {
-    rng.seed(rd());
-}
-
-void print_array(float* array, int n_elements) {
-    for (size_t i = 0; i < n_elements; i++){
-        printf("%f, %p\t", array[i], &array[i]);
-    }
-    printf("\n\n");
-}
-
-void print_array(byte* array, int n_elements) {
-    for (size_t i = 0; i < n_elements; i++){
-        printf("%c, %p\t", array[i], &array[i]);
-    }
-    printf("\n\n");
-}
-
 
 int main(int argc, char **argv)
 {
-    const int N = 10;
+    size_t N = 5;
+    float N_inv = 1.f/N;
+    size_t Nx_range[2]{0lu, N};
+    float x = atof(argv[1]);
+    float R = atof(argv[2]);
 
-    float* float_array = (float *)malloc(N * sizeof(float));
-    rand_array(float_array, N, 1697);
-    
-    print_array(float_array, N);
+    printf("x: %f, N: %ld, R: %f, low: %ld, high: %ld", x, N, R, low_bound(x-R, N, N_inv, Nx_range), high_bound(x+R, N, N_inv, Nx_range));
 
-    byte* byte_array = (byte*) float_array;
-
-    print_array(byte_array, N*4);
-
-    print_array((float*)byte_array, N);
+    return 0;
 }

@@ -1,33 +1,33 @@
-==34062== Memcheck, a memory error detector
-==34062== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==34062== Using Valgrind-3.15.0 and LibVEX; rerun with -h for copyright info
-==34062== Command: ./a.out 10 5.
-==34062== Parent PID: 34061
-==34062== 
-==34062== 
-==34062== HEAP SUMMARY:
-==34062==     in use at exit: 8 bytes in 1 blocks
-==34062==   total heap usage: 2,186 allocs, 2,185 frees, 9,233,001 bytes allocated
-==34062== 
-==34062== 8 bytes in 1 blocks are still reachable in loss record 1 of 1
-==34062==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
-==34062==    by 0x50B1685: gomp_malloc (alloc.c:38)
-==34062==    by 0x50BB1E5: gomp_init_num_threads (proc.c:91)
-==34062==    by 0x50B01FA: initialize_env (env.c:1324)
-==34062==    by 0x4011B89: call_init.part.0 (dl-init.c:72)
-==34062==    by 0x4011C90: call_init (dl-init.c:30)
-==34062==    by 0x4011C90: _dl_init (dl-init.c:119)
-==34062==    by 0x4001139: ??? (in /usr/lib/x86_64-linux-gnu/ld-2.31.so)
-==34062==    by 0x2: ???
-==34062==    by 0x1FFEFFEF96: ???
-==34062==    by 0x1FFEFFEF9E: ???
-==34062==    by 0x1FFEFFEFA1: ???
-==34062== 
-==34062== LEAK SUMMARY:
-==34062==    definitely lost: 0 bytes in 0 blocks
-==34062==    indirectly lost: 0 bytes in 0 blocks
-==34062==      possibly lost: 0 bytes in 0 blocks
-==34062==    still reachable: 8 bytes in 1 blocks
-==34062==         suppressed: 0 bytes in 0 blocks
-==34062== 
-==34062== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==46392== Memcheck, a memory error detector
+==46392== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==46392== Using Valgrind-3.15.0 and LibVEX; rerun with -h for copyright info
+==46392== Command: ./density_mpi.x 50 0.1423
+==46392== Parent PID: 46388
+==46392== 
+==46389== 
+==46389== HEAP SUMMARY:
+==46389==     in use at exit: 8 bytes in 1 blocks
+==46389==   total heap usage: 2,122 allocs, 2,121 frees, 22,777,320 bytes allocated
+==46389== 
+==46389== 8 bytes in 1 blocks are still reachable in loss record 1 of 1
+==46389==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==46389==    by 0x50B1685: gomp_malloc (alloc.c:38)
+==46389==    by 0x50BB1E5: gomp_init_num_threads (proc.c:91)
+==46389==    by 0x50B01FA: initialize_env (env.c:1324)
+==46389==    by 0x4011B89: call_init.part.0 (dl-init.c:72)
+==46389==    by 0x4011C90: call_init (dl-init.c:30)
+==46389==    by 0x4011C90: _dl_init (dl-init.c:119)
+==46389==    by 0x4001139: ??? (in /usr/lib/x86_64-linux-gnu/ld-2.31.so)
+==46389==    by 0x2: ???
+==46389==    by 0x1FFEFFEF62: ???
+==46389==    by 0x1FFEFFEF72: ???
+==46389==    by 0x1FFEFFEF75: ???
+==46389== 
+==46389== LEAK SUMMARY:
+==46389==    definitely lost: 0 bytes in 0 blocks
+==46389==    indirectly lost: 0 bytes in 0 blocks
+==46389==      possibly lost: 0 bytes in 0 blocks
+==46389==    still reachable: 8 bytes in 1 blocks
+==46389==         suppressed: 0 bytes in 0 blocks
+==46389== 
+==46389== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

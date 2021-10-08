@@ -56,20 +56,18 @@ u_int32_t get_number_of_points(FILE *file)
     return n_points;
 }
 
-void create_input_file(const char *filename, int n_points, mt19937 &rng,
+void random_input_file(const char *filename, u_int32_t n_points, mt19937 &rng,
                        uniform_real_distribution<float> &udist)
 {
-    FILE *ptr = fopen(filename, "rb");
-    write_bytes(ptr, (byte *)&n_points, sizeof(int));
+    FILE *file = fopen(filename, "wb");
+    write_bytes(file, (byte *)&n_points, sizeof(u_int32_t));
 
-    float *random_points = (float *)malloc(3 * sizeof(float));
-    for (int i = 0; i < n_points; i++)
-    {
-        array::rand_array(random_points, 3, rng, udist);
-        write_bytes(ptr, (byte *)random_points, 3 * sizeof(float));
-    }
+    float *random_points = (float *)malloc(n_points * 3 * sizeof(float));
 
-    fclose(ptr);
+    array::rand_array(random_points, n_points * 3, rng, udist);
+    write_bytes(file, (byte *)random_points, n_points * 3 * sizeof(float));
+
+    fclose(file);
     free(random_points);
 }
 

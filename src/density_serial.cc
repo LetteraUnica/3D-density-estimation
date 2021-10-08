@@ -9,23 +9,9 @@
 #include <random>
 #include <iostream>
 
-#include "io_utils.h"
-#include "array.h"
-#include "math_utils.h"
-
-#if SIZE_MAX == UCHAR_MAX
-#define my_MPI_SIZE_T MPI_UNSIGNED_CHAR
-#elif SIZE_MAX == USHRT_MAX
-#define my_MPI_SIZE_T MPI_UNSIGNED_SHORT
-#elif SIZE_MAX == UINT_MAX
-#define my_MPI_SIZE_T MPI_UNSIGNED
-#elif SIZE_MAX == ULONG_MAX
-#define MY_MPI_SIZE_T MPI_UNSIGNED_LONG
-#elif SIZE_MAX == ULLONG_MAX
-#define my_MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
-#else
-#error "what is happening here?"
-#endif
+#include "utils/io_utils.h"
+#include "utils/array.h"
+#include "utils/math_utils.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -34,8 +20,6 @@ typedef u_int8_t byte;
 
 using namespace array;
 using namespace std;
-
-
 
 int main(int argc, char **argv)
 {
@@ -55,7 +39,6 @@ int main(int argc, char **argv)
     float R = (float)atof(argv[2]);
     unsigned int n_dims = 3;
 
-    uint32_t *density = (uint32_t *)calloc(N3, sizeof(uint32_t));
     float *points;
 
     uint32_t n_points;
@@ -68,32 +51,15 @@ int main(int argc, char **argv)
         // Read number of points
         n_points = get_number_of_points(file);
         // Allocate memory for the points
-        points = (float *)malloc(n_points * sizeof(float) * n_dims);
+        size_t n_bytes = n_points * n_dims * sizeof(float);
+        points = (float *)malloc(n_bytes);
 
         // Read the 3d points
-        size_t points_per_read = 1024;
-        size_t conversion_factor = n_dims * sizeof(float);
-        size_t read_points = 0;
+        size_t n_bytes_read = read_bytes(file, (byte*)points, n_bytes);
 
-        byte *buffer = create_empty_buffer(points_per_read * conversion_factor);
+        assert(n_bytes_read == n_bytes &&
+               "Error: The file has less points than expected\n");
 
-        while (read_points < n_points)
-        {
-            size_t points_to_read = MIN(points_per_read, n_points - read_points);
-            size_t n_bytes_read = read_bytes(file, buffer,
-                                             points_to_read * conversion_factor);
-
-            assert(points_to_read == n_bytes_read / conversion_factor &&
-                   "Error: The file has less points than expected\n");
-
-            read_points += points_to_read;
-
-            // Insert points in the DS
-            memcpy(&points[read_points * n_dims], buffer,
-                   points_to_read * conversion_factor);
-        }
-
-        free(buffer);
         fclose(file);
     }
 
@@ -108,9 +74,11 @@ int main(int argc, char **argv)
 
     // Density matrix computation
     size_t Nx_range[2] = {0lu, N};
+    uint32_t *density = (uint32_t *)calloc(N3, sizeof(uint32_t));
+    float N_inv = 1.f / (float)N;
     for (size_t i = 0; i < n_points; i += 1)
     {
-        update_density_matrix(density, &points[3 * i], N, R, Nx_range);
+        fast_update_density_matrix(density, &points[3 * i], N, N_inv, R, Nx_range);
     }
 
     // Write density matrix to file

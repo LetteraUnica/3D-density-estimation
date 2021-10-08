@@ -34,25 +34,33 @@ namespace array
     void print_array(T *array, size_t start, size_t end) {
         for (; start < end; start++)
         {
-            printf("%f ", array[start]);
+            std::cout << array[start] << " ";
         }
-        printf("\n");
+        std::cout << std::endl;
+    }
+
+    template <typename T>
+    void array_difference(T *array1, T *array2, size_t n_elements) {
+        for (size_t i = 0; i < n_elements; i++)
+        {
+            array1[i] -= array2[i];
+        }
     }
 
     struct ResizableArray
     {
-        size_t max_points;
-        size_t cur_points;
+        u_int32_t max_points;
+        u_int32_t cur_points;
         float *data;
     };
 
-    ResizableArray create_resizable_array(size_t max_points)
+    ResizableArray create_resizable_array(u_int32_t max_points)
     {
         ResizableArray array{max_points, 0, (float *)malloc(3 * max_points * sizeof(float))};
         return array;
     }
 
-    void resize_array(ResizableArray *array, size_t new_points)
+    void resize_array(ResizableArray *array, u_int32_t new_points)
     {
         array->max_points = new_points;
         array->data = (float *)realloc(array->data, 3 * new_points * sizeof(float));
@@ -67,7 +75,7 @@ namespace array
         }
     }
 
-    ResizableArray *create_empty_data_structure(int n_processors, size_t max_points)
+    ResizableArray *create_empty_data_structure(int n_processors, u_int32_t max_points)
     {
         ResizableArray *data_structure = (ResizableArray *)malloc(n_processors * sizeof(ResizableArray));
         for (int i = 0; i < n_processors; i++)
