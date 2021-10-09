@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <omp.h>
 
 template <typename T>
 T clamp(T a, T min, T max)
@@ -14,7 +15,7 @@ T clamp(T a, T min, T max)
 }
 
 template <typename T>
-T clamp(T a, T* range)
+T clamp(T a, T *range)
 {
     return clamp(a, range[0], range[1]);
 }
@@ -127,7 +128,7 @@ void fast_update_density_matrix(u_int32_t *local_density, float *point, size_t N
         size_t a = (Nx - Nx_range[0]) * N * N;
 
         float x = get_point(Nx, N_inv);
-        float x2 = (x-point[0]) * (x-point[0]);
+        float x2 = (x - point[0]) * (x - point[0]);
         float radius_x2 = R2 - x2;
         float radius_x = sqrtf(radius_x2);
 
@@ -138,7 +139,44 @@ void fast_update_density_matrix(u_int32_t *local_density, float *point, size_t N
             size_t b = a + Ny * N;
 
             float y = get_point(Ny, N_inv);
-            float y2 = (y-point[1]) * (y-point[1]);
+            float y2 = (y - point[1]) * (y - point[1]);
+            float radius_xy = sqrtf(radius_x2 - y2);
+
+            size_t low_z = low_bound(point[2] - radius_xy, N, N_inv, default_range);
+            size_t high_z = high_bound(point[2] + radius_xy, N, N_inv, default_range);
+            for (size_t Nz = low_z; Nz < high_z; Nz++)
+            {
+                local_density[b + Nz] += 1;
+            }
+        }
+    }
+}
+
+void fast_update_density_matrix_omp(u_int32_t *local_density, float *point, size_t N, float N_inv, float R, size_t *Nx_range)
+{
+    float R2 = R * R;
+
+    size_t default_range[2]{0lu, N};
+
+    size_t low_x = low_bound(point[0] - R, N, N_inv, Nx_range);
+    size_t high_x = high_bound(point[0] + R, N, N_inv, Nx_range);
+    for (size_t Nx = low_x; Nx < high_x; Nx++)
+    {
+        size_t a = Nx * N * N;
+
+        float x = get_point(Nx, N_inv);
+        float x2 = (x - point[0]) * (x - point[0]);
+        float radius_x2 = R2 - x2;
+        float radius_x = sqrtf(radius_x2);
+
+        size_t low_y = low_bound(point[1] - radius_x, N, N_inv, default_range);
+        size_t high_y = high_bound(point[1] + radius_x, N, N_inv, default_range);
+        for (size_t Ny = low_y; Ny < high_y; Ny++)
+        {
+            size_t b = a + Ny * N;
+
+            float y = get_point(Ny, N_inv);
+            float y2 = (y - point[1]) * (y - point[1]);
             float radius_xy = sqrtf(radius_x2 - y2);
 
             size_t low_z = low_bound(point[2] - radius_xy, N, N_inv, default_range);

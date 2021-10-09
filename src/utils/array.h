@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <omp.h>
 
 #include <random>
 
@@ -14,9 +15,17 @@ namespace array
 {
     void rand_array(float *array, size_t n_elements, mt19937 &rng,
                     uniform_real_distribution<float> &udist)
-    {
-        for (size_t i = 0; i < n_elements; i++)
+    {   
+        #pragma omp parallel for schedule(dynamic, 128)
+        for (size_t i = 0; i < n_elements / 4 * 4; i+=4)
         {
+            array[i] = udist(rng);
+            array[i+1] = udist(rng);
+            array[i+2] = udist(rng);
+            array[i+3] = udist(rng);
+        }
+
+        for (size_t i = n_elements / 4 * 4; i < n_elements; i++) {
             array[i] = udist(rng);
         }
     }

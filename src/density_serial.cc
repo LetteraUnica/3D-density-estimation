@@ -33,9 +33,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    size_t N = atol(argv[1]);
+    u_int32_t N = atol(argv[1]);
     size_t N2 = N * N;
-    size_t N3 = N * N * N;
+    size_t N3 = N2 * N;
     float R = (float)atof(argv[2]);
     unsigned int n_dims = 3;
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
         points = (float *)malloc(n_bytes);
 
         // Read the 3d points
-        size_t n_bytes_read = read_bytes(file, (byte*)points, n_bytes);
+        size_t n_bytes_read = read_bytes(file, (byte *)points, n_bytes);
 
         assert(n_bytes_read == n_bytes &&
                "Error: The file has less points than expected\n");
@@ -84,17 +84,13 @@ int main(int argc, char **argv)
     // Write density matrix to file
     {
         FILE *file = fopen("density.bin", "wb");
-        size_t conversion_factor = sizeof(uint32_t);
-        fseek(file, Nx_range[0] * conversion_factor * N2, SEEK_SET);
+        size_t dtype_size = sizeof(uint32_t);
 
-        size_t cells_per_write = 1024;
-        size_t total_cells = N3;
-        for (size_t cells_written = 0; cells_written < total_cells; cells_written += cells_per_write)
-        {
-            size_t cells_to_write = MIN(cells_per_write, total_cells - cells_written);
-            write_bytes(file, (byte *)&density[cells_written],
-                        cells_to_write * conversion_factor);
-        }
+        // Write the grid number N
+        write_bytes(file, (byte *)&N, dtype_size);
+
+        // Write the density
+        write_bytes(file, (byte *)density, N3 * dtype_size);
 
         fclose(file);
     }

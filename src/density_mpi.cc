@@ -41,9 +41,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    size_t N = atol(argv[1]);
+    u_int32_t N = atol(argv[1]);
     size_t N2 = N * N;
-    size_t N3 = N * N * N;
+    size_t N3 = N2 * N;
     float R = (float)atof(argv[2]);
     unsigned int n_dims = 3;
 
@@ -171,9 +171,16 @@ int main(int argc, char **argv)
                       | MPI_MODE_WRONLY; /* With write access */
     MPI_File_open(MPI_COMM_WORLD, "density.bin", access_mode, MPI_INFO_NULL, &file);
 
-    size_t offset = start * N2 * sizeof(uint32_t);
-    size_t count = Nx * N2;
+    // Write the grid number N
     MPI_Status status;
+    if (my_rank == 0)
+    {
+        MPI_File_write(file, &N, 1, MPI_UINT32_T, &status);
+    }
+
+    // Write the density matrix
+    size_t offset = (start * N2 + 1) * sizeof(uint32_t);
+    size_t count = Nx * N2;
     MPI_File_write_at_all(file, offset, local_density, count, MPI_FLOAT, &status);
 
     MPI_File_close(&file);

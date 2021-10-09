@@ -1,163 +1,136 @@
 #include <stdio.h>
-// #include <mpi.h>
+#include <omp.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <stdint.h>
+#include <limits.h>
 
 #include <random>
-#include <vector>
 #include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <memory> // unique_ptr
-#include <utility>
-#include <string>
-#include <cstring>
-#include <cassert>
+
+#include "utils/io_utils.h"
+#include "utils/array.h"
+#include "utils/math_utils.h"
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 typedef u_int8_t byte;
 
-byte *float_to_byte(float *float_array, int n_elements)
+using namespace array;
+using namespace std;
+
+void compute_density_chunk(u_int32_t *density, float *points, size_t n_points,
+                           size_t N, size_t N2, float N_inv, float R,
+                           int my_task, int n_tasks)
 {
-    byte *byte_array = (byte *)malloc(n_elements * sizeof(float) * sizeof(byte));
+    size_t start = (N / n_tasks) * my_task + MIN(N % n_tasks, my_task);
+    size_t Nx = N / n_tasks + (size_t)(N % n_tasks > my_task);
+    size_t Nx_range[2] = {start, start + Nx};
 
-    memcpy(byte_array, float_array, n_elements * sizeof(float));
+    // Initialize density to 0
+    memset(&density[start * N2], 0, Nx * N2 * sizeof(uint32_t));
 
-    return byte_array;
-}
+    // Possible improvement is avoid checking all points for each task,
+    // maybe with a presorting of the points by the x coordinate and/or
+    // allocate/migrate the points to the memory bank closest to the task
+    // like in the MPI version of the code
 
-float *byte_to_float(byte *byte_array, int n_elements)
-{
-    assert(n_elements / 4 * 4 == n_elements);
-
-    float *float_array = (float *)malloc(n_elements / 4 * sizeof(float));
-
-    memcpy(float_array, byte_array, n_elements * sizeof(byte_array[0]));
-
-    return float_array;
-}
-
-byte *create_empty_buffer(size_t n_bytes)
-{
-    return (byte *)malloc(n_bytes * sizeof(byte));
-}
-
-size_t read_bytes(FILE *file, byte *buffer, size_t n_bytes)
-{
-    return fread(buffer, sizeof(byte), n_bytes, file);
-}
-
-size_t write_bytes(FILE *file, byte *buffer, size_t n_bytes)
-{
-    return fwrite(buffer, sizeof(byte), n_bytes, file);
-}
-
-void fill_array(float *array, float value, size_t n_elements)
-{
-    for(int i = 0; i < n_elements; i++){
-        array[i] = value;
+    // printf("my_id: %d, start: %ld, end: %ld, step: %ld, n_points: %ld, R: %f\n",
+    // omp_get_thread_num(), Nx_range[0], Nx_range[1], Nx, n_points, R);
+    for (size_t i = 0; i < n_points; i += 1)
+    {
+        fast_update_density_matrix_omp(density, &points[3 * i], N, N_inv, R, Nx_range);
     }
 }
-
-std::random_device rd;
-std::mt19937 rng;
-std::uniform_real_distribution<float> udist(0, 1);
-
-float* rand_array(size_t n_elements)
-{
-    float* array = (float *)malloc(n_elements * sizeof(float));
-    for (size_t i = 0; i < n_elements; i++) {
-        array[i] = udist(rng);
-    }
-
-    return array;
-}
-
-void set_random_seed() {
-    rng.seed(rd());
-}
-
-void create_input_file(const char *filename, int n_points) {
-    set_random_seed();
-
-    FILE* ptr = fopen("test.bin", "rb");
-    write_bytes(ptr, (byte*)&n_points, 4);
-
-    for (int i = 0; i < n_points; i++) {
-        float* random_points = rand_array(3);
-        byte* buffer = float_to_byte(random_points, 3);
-        write_bytes(ptr, buffer, 3 * sizeof(float));
-    }
-}
-
-float* read_input_file(const char *filename);
-
-float* generate_random_3d_points(size_t n_points);
-
-
-struct ResizableArray {
-    size_t N;
-    float* data;
-};
 
 int main(int argc, char **argv)
 {
-    if (argc < 4) {
-        printf("Error: you must provide a value for the grid number N and the radius R");
+    std::random_device rd;
+    std::mt19937 rng;
+    std::uniform_real_distribution<float> udist(0, 1);
+
+    if (argc < 3)
+    {
+        printf("Error: you must provide a value for the grid number N and the radius R\n");
         return 1;
     }
 
-    unsigned long N = atol(argv[1]);
+    u_int32_t N = atol(argv[1]);
+    size_t N2 = N * N;
+    size_t N3 = N2 * N;
     float R = (float)atof(argv[2]);
+    unsigned int n_dims = 3;
 
-    int n_processors = 4;
-    ResizableArray* data_structure = (ResizableArray*) malloc(n_processors*sizeof(ResizableArray));
+    float *points;
 
-    if (argc==4) {
-        // Read input file
-        FILE* file = fopen("test.bin", "rb");
+    uint32_t n_points;
 
-        byte buffer[4];
-        int n_points;
-        fread(buffer, 1, 4, file);
-        memcpy(&n_points, buffer, 4);
+    // Read input file
+    if (argc == 4)
+    {
+        // Open input file
+        FILE *file = fopen(argv[3], "rb");
+        
+        // Read number of points
+        n_points = get_number_of_points(file);
+        
+        // Allocate memory for the points
+        size_t n_bytes = n_points * n_dims * sizeof(float);
+        points = (float *)malloc(n_bytes);
 
-        size_t points_per_read = 1024;
-        size_t conversion_factor = sizeof(float)*3;
-        size_t block_size = points_per_read*conversion_factor;
-        size_t actual_n_points = 0;
+        // Read the 3d points
+        size_t n_bytes_read = read_bytes(file, (byte *)points, n_bytes);
 
-        for (size_t i=0; i<n_points; i+=block_size) {
-            byte* buffer = create_empty_buffer(block_size);
-            
-            size_t n_bytes_read = read_bytes(file, buffer, block_size);
-            size_t n_points_read = n_bytes_read / conversion_factor;
+        assert(n_bytes_read == n_bytes &&
+               "Error: The file has less points than expected\n");
 
-            if (n_bytes_read != n_points_read*conversion_factor) {
-                printf("Warning: The coordinates of the last point"
-                "are missing, discarding them\n");
+        fclose(file);
+    }
+
+    // Generate random points
+    else
+    {
+        n_points = N3 / 10;
+        points = (float *)malloc(n_points * sizeof(float) * n_dims);
+        set_random_seed(rng, rd);
+        array::rand_array(points, n_points * n_dims, rng, udist);
+    }
+
+    // Density matrix computation
+    float N_inv = 1.f / (float)N;
+    uint32_t *density = (uint32_t *)malloc(N3 * sizeof(uint32_t));
+    #pragma omp parallel shared(density, points)
+    {
+        #pragma omp single nowait
+        {
+            int n_tasks = MAX(1, N / 8);
+            for (int i = 0; i < n_tasks; i++)
+            {
+                // Since density is shared we need to avoid false sharing, so
+                // we schedule the tasks with different priorities
+                #pragma omp task
+                compute_density_chunk(density, points, n_points, N, N2, N_inv, R, i, n_tasks);
             }
-            actual_n_points += n_points_read;
-
-            // Process the buffer
-            float* points = byte_to_float(buffer, n_points_read);
-
-        }   
-
-        if (actual_n_points !=n_points) {
-            printf("Warning: The number of points found in the file are"
-            "different than what is specified in the file header,"
-            "specified: %ld, found: %ld, the program will continue with"
-            "the number of found points\n", n_points, actual_n_points);
-
-            n_points = actual_n_points;
         }
-
-        n_po
-
     }
 
-    else {
-        // Generate n points
-        unsigned long n = 1000;
-    }
+    
+    // Write density matrix to file
+    FILE *file = fopen("density.bin", "wb");
+    size_t dtype_size = sizeof(uint32_t);
+
+    // Write the grid number N
+    write_bytes(file, (byte *)&N, dtype_size);
+
+    // Write the density
+    write_bytes(file, (byte *)density, N3 * dtype_size);
+
+    fclose(file);
+
+    free(points);
+    free(density);
+
+    return 0;
 }
