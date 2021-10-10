@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    u_int32_t n_points = atol(argv[1]);
+    const u_int32_t n_points = atol(argv[1]);
     
     random_input_file("points.bin", n_points, rng, udist);
     return 0;

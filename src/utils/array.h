@@ -15,17 +15,18 @@ namespace array
 {
     void rand_array(float *array, size_t n_elements, mt19937 &rng,
                     uniform_real_distribution<float> &udist)
-    {   
-        #pragma omp parallel for schedule(dynamic, 128)
-        for (size_t i = 0; i < n_elements / 4 * 4; i+=4)
+    {
+#pragma omp parallel for schedule(dynamic, 128)
+        for (size_t i = 0; i < n_elements / 4 * 4; i += 4)
         {
             array[i] = udist(rng);
-            array[i+1] = udist(rng);
-            array[i+2] = udist(rng);
-            array[i+3] = udist(rng);
+            array[i + 1] = udist(rng);
+            array[i + 2] = udist(rng);
+            array[i + 3] = udist(rng);
         }
 
-        for (size_t i = n_elements / 4 * 4; i < n_elements; i++) {
+        for (size_t i = n_elements / 4 * 4; i < n_elements; i++)
+        {
             array[i] = udist(rng);
         }
     }
@@ -40,20 +41,13 @@ namespace array
     }
 
     template <typename T>
-    void print_array(T *array, size_t start, size_t end) {
+    void print_array(T *array, size_t start, size_t end)
+    {
         for (; start < end; start++)
         {
             std::cout << array[start] << " ";
         }
         std::cout << std::endl;
-    }
-
-    template <typename T>
-    void array_difference(T *array1, T *array2, size_t n_elements) {
-        for (size_t i = 0; i < n_elements; i++)
-        {
-            array1[i] -= array2[i];
-        }
     }
 
     struct ResizableArray
@@ -84,7 +78,8 @@ namespace array
         }
     }
 
-    ResizableArray *create_empty_data_structure(int n_processors, u_int32_t max_points)
+    ResizableArray *create_empty_data_structure(const int n_processors,
+                                                const u_int32_t max_points)
     {
         ResizableArray *data_structure = (ResizableArray *)malloc(n_processors * sizeof(ResizableArray));
         for (int i = 0; i < n_processors; i++)
@@ -95,11 +90,12 @@ namespace array
         return data_structure;
     }
 
-    void insert_point(ResizableArray *DS, float x, float y, float z, float R, int n_processors)
+    void insert_point(ResizableArray *__restrict DS, float *__restrict point,
+                      const float R, const int n_processors, const float step)
     {
-        float step = 1.f / (float)n_processors;
-        float low = 0.f;
-        float high = low + step;
+        float register low = 0.f;
+        float register high = low + step;
+        float register x = point[0];
 
         for (int j = 0; j < n_processors; j++)
         {
@@ -111,8 +107,8 @@ namespace array
                 }
 
                 DS[j].data[3 * DS[j].cur_points] = x;
-                DS[j].data[3 * DS[j].cur_points + 1] = y;
-                DS[j].data[3 * DS[j].cur_points + 2] = z;
+                DS[j].data[3 * DS[j].cur_points + 1] = point[1];
+                DS[j].data[3 * DS[j].cur_points + 2] = point[2];
                 DS[j].cur_points += 1;
             }
 
@@ -121,13 +117,16 @@ namespace array
         }
     }
 
-    void insert_points(float *points, size_t n_points, ResizableArray *DS, float R, int n_processors)
+    void insert_points(float *__restrict points, const size_t n_points,
+                       ResizableArray *__restrict DS, const float R,
+                       const int n_processors)
     {
-    for (size_t i = 0; i < n_points; i++)
-    {
-        insert_point(DS, points[3 * i], points[3 * i + 1], points[3 * i + 2], R, n_processors);
+        float step = 1.0f / n_processors;
+        for (size_t i = 0; i < n_points; i++)
+        {
+            insert_point(DS, &points[3 * i], R, n_processors, step);
+        }
     }
-}
 }
 
 #endif

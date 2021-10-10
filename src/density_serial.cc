@@ -76,9 +76,12 @@ int main(int argc, char **argv)
     size_t Nx_range[2] = {0lu, N};
     uint32_t *density = (uint32_t *)calloc(N3, sizeof(uint32_t));
     float N_inv = 1.f / (float)N;
+    float R2 = R * R;
     for (size_t i = 0; i < n_points; i += 1)
     {
-        fast_update_density_matrix(density, &points[3 * i], N, N_inv, R, Nx_range);
+        update_density_matrix(density, &points[3 * i],
+                              N, N2, N_inv, R, R2,
+                              Nx_range, Nx_range);
     }
 
     // Write density matrix to file

@@ -16,7 +16,7 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-#define BATCH_SIZE 1024
+#define BATCH_SIZE 65536
 
 typedef u_int8_t byte;
 
@@ -41,11 +41,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    u_int32_t N = atol(argv[1]);
-    size_t N2 = N * N;
-    size_t N3 = N2 * N;
-    float R = (float)atof(argv[2]);
-    unsigned int n_dims = 3;
+    const u_int32_t N = atol(argv[1]);
+    const size_t N2 = N * N;
+    const size_t N3 = N2 * N;
+    const float R = (float)atof(argv[2]);
+    const unsigned int n_dims = 3;
 
     float *local_points;
     uint32_t *local_density;
@@ -56,9 +56,8 @@ int main(int argc, char **argv)
     if (my_rank == 0)
     {
         uint32_t n_points;
-        // Create the data structure
-        uint32_t max_points = 1024;
-        ResizableArray *DS = create_empty_data_structure(n_processors, max_points);
+        // Define the data structure
+        ResizableArray *DS;
 
         // Read input file
         if (argc == 4)
@@ -69,13 +68,16 @@ int main(int argc, char **argv)
             // Read number of points
             n_points = get_number_of_points(file);
 
-            // Read the 3d points
-            size_t points_per_read = 1024;
-            size_t conversion_factor = n_dims * sizeof(float);
-            size_t read_points = 0;
+            // Create the data structure
+            uint32_t max_points = (Nx / N + 2 * R) * n_points + 1024;
+            DS = create_empty_data_structure(n_processors, max_points);
 
+            // Read the 3d points
+            const size_t points_per_read = BATCH_SIZE;
+            const size_t conversion_factor = n_dims * sizeof(float);
             byte *buffer = create_empty_buffer(points_per_read * conversion_factor);
 
+            size_t register read_points = 0;
             while (read_points < n_points)
             {
                 size_t points_to_read = MIN(points_per_read, n_points - read_points);
@@ -101,9 +103,13 @@ int main(int argc, char **argv)
             set_random_seed(rng, rd);
             n_points = N3 / 10;
 
-            size_t batch_size = 1024;
-            size_t conversion_factor = n_dims * sizeof(float);
-            size_t generated_points = 0;
+            // Create the data structure
+            const uint32_t max_points = (Nx / N + 2 * R) * n_points + 1024;
+            DS = create_empty_data_structure(n_processors, max_points);
+
+            const size_t batch_size = BATCH_SIZE;
+            const size_t conversion_factor = n_dims * sizeof(float);
+            size_t register generated_points = 0;
 
             float *points = (float *)malloc(batch_size * conversion_factor);
             while (generated_points < n_points)
@@ -157,33 +163,41 @@ int main(int argc, char **argv)
     }
 
     // Density matrix computation
-    size_t start = (N / n_processors) * my_rank + MIN(N % n_processors, my_rank);
-    size_t Nx_range[2] = {start, start + Nx};
-    float N_inv = 1.f / (float)N;
-    for (size_t i = 0; i < local_n_points; i += 1)
+    const size_t start = (N / n_processors) * my_rank + MIN(N % n_processors, my_rank);
     {
-        fast_update_density_matrix(local_density, &local_points[3 * i], N, N_inv, R, Nx_range);
+        size_t Nx_range[2] = {start, start + Nx};
+        size_t default_range[2]{0lu, N};
+        float N_inv = 1.f / (float)N;
+        float R2 = R * R;
+        for (size_t i = 0; i < local_n_points; i += 1)
+        {
+            update_density_matrix(local_density, &local_points[3 * i],
+                                  N, N2, N_inv, R, R2,
+                                  Nx_range, default_range);
+        }
     }
 
     // Write density matrix to file
-    MPI_File file;
-    int access_mode = MPI_MODE_CREATE    /* Create the file if it does not exist */
-                      | MPI_MODE_WRONLY; /* With write access */
-    MPI_File_open(MPI_COMM_WORLD, "density.bin", access_mode, MPI_INFO_NULL, &file);
-
-    // Write the grid number N
-    MPI_Status status;
-    if (my_rank == 0)
     {
-        MPI_File_write(file, &N, 1, MPI_UINT32_T, &status);
+        MPI_File file;
+        int access_mode = MPI_MODE_CREATE    /* Create the file if it does not exist */
+                          | MPI_MODE_WRONLY; /* With write access */
+        MPI_File_open(MPI_COMM_WORLD, "density.bin", access_mode, MPI_INFO_NULL, &file);
+
+        // Write the grid number N
+        MPI_Status status;
+        if (my_rank == 0)
+        {
+            MPI_File_write(file, &N, 1, MPI_UINT32_T, &status);
+        }
+
+        // Write the density matrix
+        size_t offset = (start * N2 + 1) * sizeof(uint32_t);
+        size_t count = Nx * N2;
+        MPI_File_write_at_all(file, offset, local_density, count, MPI_FLOAT, &status);
+
+        MPI_File_close(&file);
     }
-
-    // Write the density matrix
-    size_t offset = (start * N2 + 1) * sizeof(uint32_t);
-    size_t count = Nx * N2;
-    MPI_File_write_at_all(file, offset, local_density, count, MPI_FLOAT, &status);
-
-    MPI_File_close(&file);
 
     free(local_density);
     free(local_points);
