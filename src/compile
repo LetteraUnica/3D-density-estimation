@@ -6,5 +6,6 @@ g++-10 $flags -fopenmp -o generate_points.x generate_points.cc
 g++-10 $flags -o density_serial.x density_serial.cc
 
 mpicxx $flags -cxx=g++-10 -o density_mpi.x density_mpi.cc
+mpicxx $flags -cxx=g++-10 -o density density_mpi.cc
 
 g++-10 $flags -fopenmp -o density_omp.x density_omp.cc

@@ -33,19 +33,19 @@ Cons:
 ### K-d tree
 Use a k-d tree to preprocess the data, this approach has a complexity of $\Theta(\log n)$ per each grid point, for a total complexity of $\Theta(N^3\log n)$, however it has a lot of cache misses.  
 
-Pros:
+Pros:  
 * $\Theta(N^3\log n)$ complexity  
 
-Cons:
+Cons:  
 * Lots of cache misses ($\Theta(\log n)$ per node)  
 * Difficult to implement
 
-### Restrict search space
+### Restrict search space  
 This method does the opposite: instead of counting the number of $x_i$ "near" a grid point simply count the number of grid points near a $x_i$, that is $D_{ijk} = D_{ijk} + ||N_{ijk} - x_l||_2 < R$.  
 At first glance this method is the same as the brute force one, however we can only update the part of the density $D$ which needs to be updated, resulting in a complexity of $\Theta((NR)^3 n)$, because the ratio of the volume occupied by the sphere goes like $\Theta(R^3)$ and the total number of grid points is $N^3$.  
 Note that $R<1$, so this is better than the brute force method and the lower $R$ the more efficient it becomes.
 
-Pros:
+Pros:  
 * $\Theta((NR)^3 n)$ complexity, lower than brute force and for low $R$ better than kd-trees
 * No cache misses if programmed correctly
 
