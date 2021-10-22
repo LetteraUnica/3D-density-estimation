@@ -60,43 +60,11 @@ void update_density_matrix(u_int32_t *__restrict local_density, float *__restric
     size_t high_x = high_bound(point[0] + R, N, N_inv, Nx_range);
     for (; low_x < high_x; low_x++)
     {
-        size_t register a = (low_x - Nx_range[0]) * N2;
-
-        float x = get_point(low_x, N_inv) - point[0];
-        float x2 = x * x;
-        float radius_x2 = R2 - x2;
-        float register radius_x = sqrtf(radius_x2);
-
-        size_t register low_y = low_bound(point[1] - radius_x, N, N_inv, default_range);
-        size_t high_y = high_bound(point[1] + radius_x, N, N_inv, default_range);
-        for (; low_y < high_y; low_y++)
-        {
-            size_t register b = a + low_y * N;
-
-            float y = get_point(low_y, N_inv) - point[1];
-            float y2 = y * y;
-            float register radius_xy = sqrtf(radius_x2 - y2);
-
-            size_t register low_z = low_bound(point[2] - radius_xy, N, N_inv, default_range);
-            size_t high_z = high_bound(point[2] + radius_xy, N, N_inv, default_range);
-            for (; low_z < high_z; low_z++)
-            {
-                local_density[b + low_z] += 1lu;
-            }
-        }
-    }
-}
-
-void update_density_matrix_OMP(u_int32_t *__restrict local_density, float *__restrict point,
-                               register const size_t N, const size_t N2,
-                               register const float N_inv, register const float R, const float R2,
-                               size_t *Nx_range, size_t *default_range)
-{
-    size_t register low_x = low_bound(point[0] - R, N, N_inv, Nx_range);
-    size_t high_x = high_bound(point[0] + R, N, N_inv, Nx_range);
-    for (; low_x < high_x; low_x++)
-    {
+        #ifdef _OPENMP
         size_t register a = low_x * N2;
+        #else
+        size_t register a = (low_x - Nx_range[0]) * N2;
+        #endif
 
         float x = get_point(low_x, N_inv) - point[0];
         float x2 = x * x;

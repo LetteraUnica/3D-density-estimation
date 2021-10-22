@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "utils/io_utils.h"
+#include "utils/math_utils.h"
 
 typedef u_int8_t byte;
 
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
 
     const u_int32_t n_points = atol(argv[1]);
     
+    set_random_seed(rng, rd);
     random_input_file("points.bin", n_points, rng, udist);
     return 0;
 }
