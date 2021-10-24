@@ -8,6 +8,7 @@
 
 #include <random>
 #include <iostream>
+#include <algorithm> 
 
 #include "utils/io_utils.h"
 #include "utils/array.h"
@@ -45,7 +46,8 @@ void compute_density_chunk(u_int32_t *__restrict density, float *__restrict poin
     // omp_get_thread_num(), Nx_range[0], Nx_range[1], Nx, n_points, R);
     for (register size_t i = 0; i < n_points * 3; i += 3)
     {
-        update_density_matrix(density, &points[i], N, N2, N_inv, R, R2, Nx_range, default_range);
+        update_density_matrix(density, &points[i], N, N2, N_inv, R, R2,
+                              Nx_range, default_range);
     }
 }
 
