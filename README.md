@@ -57,5 +57,5 @@ In the first benchmark MPI is faster than OpenMP, this could be caused by the fa
 
 In the second benchmark the results are very interesting: 
 - For $N<100$ the MPI program is slightly better than OpenMP, in this regime the number of cell updates is similar to the number of points, so the pre-sorting of points that the MPI program does is very beneficial.
-- For $100 < N < 500$ the OpenMP version is faster, from this point on the number of cell updates is much bigger than the number of points, so the OpenMP code doesn't suffer from skipping the pre-sorting, moreover it manages to achieve better work-sharing among the processors because of tasks, so it performs quite better than the MPI version.
-- For $N>500$ the MPI program returns to be the fastest, in this regime the time spent performing I/O is relevant, for instance when $N=1024$ the density matrix is about 4 GB, and we think that MPI manages to parallelize this part while OpenMP doesn't
+- For $100 < N < 500$ the OpenMP version is faster, from this point on the number of cell updates is much bigger than the number of points, so the OpenMP code doesn't suffer from skipping the pre-sorting, moreover it manages to achieve better work-sharing among the processors because of tasks, so it performs better than the MPI version.
+- For $N>500$ the MPI program returns to be the fastest, in this regime the time spent performing I/O is relevant, for instance when $N=1024$ the density matrix is about $4$ GB, and MPI parallelizes this part while OpenMP doesn't.
