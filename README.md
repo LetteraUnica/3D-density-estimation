@@ -1,5 +1,5 @@
 # What is this?
-Solves the problem of estimating the 3d density of a set of points in a fast and parallel way.
+This code computes the 3d density of a set of points in a fast and parallel way.
 We implemented two parallel algorithms, one using OpenMP and the other using MPI, the algorithms are provided in the src/ folder
 
 
